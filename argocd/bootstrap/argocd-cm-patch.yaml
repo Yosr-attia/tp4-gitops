@@ -1,0 +1,5 @@
+# Applied once at bootstrap (kubectl patch --patch-file).
+# ArgoCD polls Git every 180s by default; 30s makes the live demo faster.
+# In production you would keep the default and add a GitHub webhook instead.
+data:
+  timeout.reconciliation: 30s

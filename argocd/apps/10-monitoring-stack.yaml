@@ -1,0 +1,87 @@
+# kube-prometheus-stack (Prometheus Operator + Prometheus + Alertmanager +
+# Grafana + kube-state-metrics + node-exporter) deployed by ArgoCD from the
+# official Helm repository. The Helm values are versioned here, in Git.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kube-prometheus-stack
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-1"
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: platform
+  source:
+    repoURL: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    targetRevision: 93.9.0
+    helm:
+      releaseName: prometheus
+      valuesObject:
+        prometheus:
+          prometheusSpec:
+            # Pick up EVERY ServiceMonitor / PodMonitor / PrometheusRule in the
+            # cluster, not only those labelled with release=prometheus.
+            serviceMonitorSelectorNilUsesHelmValues: false
+            podMonitorSelectorNilUsesHelmValues: false
+            ruleSelectorNilUsesHelmValues: false
+            scrapeInterval: 15s
+            evaluationInterval: 15s
+            retention: 2d
+            resources:
+              requests:
+                cpu: 200m
+                memory: 512Mi
+        alertmanager:
+          enabled: true
+        grafana:
+          enabled: true
+          defaultDashboardsEnabled: true
+          sidecar:
+            dashboards:
+              enabled: true
+              label: grafana_dashboard
+              labelValue: "1"
+              searchNamespace: ALL
+        # Control-plane components are not reachable on Docker Desktop / kind:
+        # disabling them avoids permanent "target down" alerts.
+        kubeEtcd:
+          enabled: false
+        kubeControllerManager:
+          enabled: false
+        kubeScheduler:
+          enabled: false
+        kubeProxy:
+          enabled: false
+        # node-exporter on Docker Desktop cannot mount / with propagation
+        prometheus-node-exporter:
+          hostRootFsMount:
+            enabled: false
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      # Prometheus Operator CRDs are too big for client-side apply
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
+  # The admission webhook CA bundle is injected at runtime -> ignore it
+  ignoreDifferences:
+    - group: admissionregistration.k8s.io
+      kind: MutatingWebhookConfiguration
+      jqPathExpressions:
+        - .webhooks[]?.clientConfig.caBundle
+    - group: admissionregistration.k8s.io
+      kind: ValidatingWebhookConfiguration
+      jqPathExpressions:
+        - .webhooks[]?.clientConfig.caBundle

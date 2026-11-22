@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: podinfo
+spec:
+  template:
+    spec:
+      containers:
+        - name: podinfo
+          env:
+            - name: PODINFO_UI_MESSAGE
+              value: "TP4 GitOps - PROD"
+            - name: PODINFO_UI_COLOR
+              value: "#c62828"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi

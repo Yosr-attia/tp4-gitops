@@ -1,0 +1,19 @@
+# Tells Prometheus (operator) to scrape podinfo's /metrics endpoint.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: podinfo
+  labels:
+    app.kubernetes.io/name: podinfo
+  annotations:
+    # The ServiceMonitor CRD is installed by kube-prometheus-stack; if this app
+    # syncs first, skip the dry-run instead of failing (the retry fixes it).
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: podinfo
+  endpoints:
+    - port: http-metrics
+      path: /metrics
+      interval: 15s

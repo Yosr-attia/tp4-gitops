@@ -1,0 +1,42 @@
+# Two AppProjects = least privilege.
+#  - "platform"  : infrastructure (monitoring) -> needs cluster-scoped objects (CRDs, ClusterRoles...)
+#  - "workloads" : business apps -> only namespaced objects in podinfo-* namespaces
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  description: Platform components (Prometheus, Grafana, Alertmanager, monitoring config)
+  sourceRepos:
+    - https://github.com/Yosr-attia/tp4-gitops.git
+    - https://prometheus-community.github.io/helm-charts
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: monitoring
+    - server: https://kubernetes.default.svc
+      namespace: kube-system
+  clusterResourceWhitelist:
+    - group: "*"
+      kind: "*"
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: workloads
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-2"
+spec:
+  description: Business applications deployed through GitOps
+  sourceRepos:
+    - https://github.com/Yosr-attia/tp4-gitops.git
+  destinations:
+    - server: https://kubernetes.default.svc
+      namespace: podinfo-*
+  # Only Namespaces may be created at cluster scope (CreateNamespace=true)
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace

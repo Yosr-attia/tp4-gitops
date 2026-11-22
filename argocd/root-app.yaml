@@ -1,0 +1,33 @@
+# App-of-Apps "root" Application.
+# This is the ONLY manifest applied by hand (kubectl apply -f argocd/root-app.yaml).
+# Everything else (projects, monitoring stack, podinfo) is created by ArgoCD
+# from the argocd/apps/ folder of this Git repository.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Yosr-attia/tp4-gitops.git
+    targetRevision: main
+    path: argocd/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - RespectIgnoreDifferences=true
+  # Lets you toggle auto-sync of a child app from the UI (needed for the
+  # Rollback scenario) without the root app immediately reverting it.
+  ignoreDifferences:
+    - group: argoproj.io
+      kind: Application
+      jsonPointers:
+        - /spec/syncPolicy/automated

@@ -1,0 +1,22 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: podinfo-dev
+resources:
+  - ../../base
+labels:
+  - pairs:
+      environment: dev
+    includeSelectors: false
+
+# ---- Values you change during the demo scenarios ----
+# Scenario 1 : change "count" (e.g. 2 -> 4) or "newTag" (6.16.0 -> 6.17.0)
+# Scenario 3 : set newTag to a tag that does not exist (e.g. 0.0.0-doesnotexist)
+images:
+  - name: ghcr.io/stefanprodan/podinfo
+    newTag: 6.16.0
+replicas:
+  - name: podinfo
+    count: 2
+
+patches:
+  - path: patch-env.yaml

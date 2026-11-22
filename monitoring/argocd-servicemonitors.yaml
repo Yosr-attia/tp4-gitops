@@ -1,0 +1,46 @@
+# Scrape the 3 internal metrics endpoints of the ArgoCD control plane.
+# The Services already exist in the "argocd" namespace (official install).
+#   argocd-metrics          :8082  -> application-controller (argocd_app_info, argocd_app_sync_total, ...)
+#   argocd-server-metrics   :8083  -> API server / UI (gRPC & HTTP requests)
+#   argocd-repo-server      :8084  -> repo-server (argocd_git_request_total, manifest generation)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-metrics
+spec:
+  namespaceSelector:
+    matchNames: [argocd]
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-metrics
+  endpoints:
+    - port: metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-server-metrics
+spec:
+  namespaceSelector:
+    matchNames: [argocd]
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-server-metrics
+  endpoints:
+    - port: metrics
+      interval: 15s
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: argocd-repo-server-metrics
+spec:
+  namespaceSelector:
+    matchNames: [argocd]
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: argocd-repo-server
+  endpoints:
+    - port: metrics
+      interval: 15s
