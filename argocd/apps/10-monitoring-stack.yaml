@@ -19,6 +19,14 @@ spec:
     helm:
       releaseName: prometheus
       valuesObject:
+        # Docker Desktop (WSL2) periodically adjusts the VM clock: the
+        # process_start_time_seconds metric "changes" without any restart and
+        # some rule evaluations are skipped -> these 2 default rules raise
+        # false positives in this lab environment only.
+        defaultRules:
+          disabled:
+            AlertmanagerClusterCrashlooping: true
+            PrometheusMissingRuleEvaluations: true
         prometheus:
           prometheusSpec:
             # Pick up EVERY ServiceMonitor / PodMonitor / PrometheusRule in the

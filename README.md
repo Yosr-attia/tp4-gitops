@@ -107,11 +107,11 @@ garantissent que les CRDs Prometheus existent avant la création des `ServiceMon
 | Réconciliations / appels Git | `sum(rate(argocd_app_reconcile_count[5m]))`, `sum by (request_type) (rate(argocd_git_request_total[5m]))` |
 | Pods Desired / Available / Unavailable | `sum(kube_deployment_spec_replicas{namespace="$namespace"})`, `sum(kube_deployment_status_replicas_available{…})`, `sum(kube_deployment_status_replicas_unavailable{…})` |
 | Conteneurs en attente | `sum by (reason) (kube_pod_container_status_waiting_reason{namespace="$namespace"})` |
-| CPU par pod | `sum by (pod) (rate(container_cpu_usage_seconds_total{namespace="$namespace", container!=""}[2m]))` |
-| Mémoire par pod | `sum by (pod) (container_memory_working_set_bytes{namespace="$namespace", container!=""})` |
+| CPU par pod | `sum by (pod) (rate(container_cpu_usage_seconds_total{namespace="$namespace", container="", pod!=""}[2m]))` |
+| Mémoire par pod | `sum by (pod) (container_memory_working_set_bytes{namespace="$namespace", container="", pod!=""})` |
 | Redémarrages | `sum by (pod) (increase(kube_pod_container_status_restarts_total{namespace="$namespace"}[10m]))` |
 | Requêtes HTTP/s | `sum by (status) (rate(http_request_duration_seconds_count{namespace="$namespace"}[2m]))` |
-| Taux d'erreurs 5xx | `sum(rate(…{status=~"5.."}[2m])) / sum(rate(…[2m]))` |
+| Taux d'erreurs 5xx | `(sum(rate(…{status=~"5.."}[2m])) or vector(0)) / sum(rate(…[2m]))` |
 | Latence p95 | `histogram_quantile(0.95, sum by (le) (rate(http_request_duration_seconds_bucket{namespace="$namespace"}[2m])))` |
 | Alertes | `sum by (alertname, alertstate) (ALERTS{alertname!="Watchdog"})` |
 | Annotation « ArgoCD syncs » | `sum by (name, phase) (changes(argocd_app_sync_total{name="$app"}[1m])) > 0` |
@@ -125,6 +125,15 @@ garantissent que les CRDs Prometheus existent avant la création des `ServiceMon
 | `ArgoCDSyncFailed` | `increase(argocd_app_sync_total{phase=~"Error\|Failed"}[5m]) > 0` | — |
 | `PodImagePullBackOff` | `kube_pod_container_status_waiting_reason{reason=~"ErrImagePull\|ImagePullBackOff"} == 1` | 1 min |
 | `PodCrashLooping` | `kube_pod_container_status_waiting_reason{reason="CrashLoopBackOff"} == 1` | 2 min |
+
+### Particularités de l'environnement (Docker Desktop / WSL2)
+
+- **cAdvisor** n'expose que des cgroups de niveau *pod* (pas de label `container`) : les panneaux CPU/Mémoire
+  utilisent donc `container=""` (agrégat par pod), ce qui fonctionne aussi sur un cluster standard.
+- **Horloge de la VM WSL2** réajustée périodiquement : `process_start_time_seconds` varie sans redémarrage réel
+  et quelques évaluations de règles sont sautées. Les règles par défaut `AlertmanagerClusterCrashlooping` et
+  `PrometheusMissingRuleEvaluations` (faux positifs prouvés : 0 redémarrage, évaluation en 36 ms) sont
+  désactivées via `defaultRules.disabled` — de façon déclarative et justifiée dans Git, plutôt qu'un *silence* manuel.
 
 ## 7. Bootstrap
 
