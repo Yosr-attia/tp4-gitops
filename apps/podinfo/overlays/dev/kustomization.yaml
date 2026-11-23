@@ -13,7 +13,7 @@ labels:
 # Scenario 3 : set newTag to a tag that does not exist (e.g. 0.0.0-doesnotexist)
 images:
   - name: ghcr.io/stefanprodan/podinfo
-    newTag: 0.0.0-doesnotexist
+    newTag: 6.16.0
 replicas:
   - name: podinfo
     count: 6
